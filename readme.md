@@ -1,0 +1,1 @@
+Repository for homework assignments for the Golang course at the Technopark
