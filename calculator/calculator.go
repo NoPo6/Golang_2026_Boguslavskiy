@@ -53,7 +53,7 @@ func Calculate(expression string) (float64, error) {
 
 // функция для разбора суммы и разности
 func (p *parser) parseSum() (float64, error) {
-	// разбираем первый терм
+	// разбираем первый множитель
 	left, err := p.parseProduct()
 	if err != nil {
 		return 0, err
@@ -75,7 +75,7 @@ func (p *parser) parseSum() (float64, error) {
 			return 0, ErrUnexpectedChar
 		}
 
-		// разбираем следующий терм
+		// разбираем следующую операцию
 		right, err := p.parseProduct()
 		if err != nil {
 			return 0, err
