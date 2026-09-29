@@ -17,7 +17,7 @@ func TestUnique_Success(t *testing.T) {
 			name:     "empty input",
 			commands: Commands{},
 			lines:    []string{},
-			expected: nil,
+			expected: []string{},
 		},
 		{
 			name:     "single line",
@@ -59,7 +59,7 @@ func TestUnique_Success(t *testing.T) {
 			name:     "duplicates flag no duplicates",
 			commands: Commands{Duplicates: true},
 			lines:    []string{"a", "b", "c"},
-			expected: nil,
+			expected: []string{},
 		},
 		{
 			name:     "unique flag",
@@ -71,7 +71,7 @@ func TestUnique_Success(t *testing.T) {
 			name:     "unique flag all duplicated",
 			commands: Commands{Unique: true},
 			lines:    []string{"a", "a", "b", "b"},
-			expected: nil,
+			expected: []string{},
 		},
 		{
 			name:     "ignore case",
@@ -178,31 +178,31 @@ func TestUnique_Failure(t *testing.T) {
 			name:     "duplicates on all unique lines returns empty",
 			commands: Commands{Duplicates: true},
 			lines:    []string{"a", "b", "c", "d"},
-			expected: nil,
+			expected: []string{},
 		},
 		{
 			name:     "unique on all duplicated lines returns empty",
 			commands: Commands{Unique: true},
 			lines:    []string{"a", "a", "b", "b", "c", "c"},
-			expected: nil,
+			expected: []string{},
 		},
 		{
 			name:     "count on empty input returns empty",
 			commands: Commands{Count: true},
 			lines:    []string{},
-			expected: nil,
+			expected: []string{},
 		},
 		{
 			name:     "duplicates on empty input returns empty",
 			commands: Commands{Duplicates: true},
 			lines:    []string{},
-			expected: nil,
+			expected: []string{},
 		},
 		{
 			name:     "unique on empty input returns empty",
 			commands: Commands{Unique: true},
 			lines:    []string{},
-			expected: nil,
+			expected: []string{},
 		},
 		{
 			name:     "skip all chars groups everything into one",
@@ -214,7 +214,7 @@ func TestUnique_Failure(t *testing.T) {
 			name:     "duplicates after skip fields no matches",
 			commands: Commands{Duplicates: true, SkipFields: 1},
 			lines:    []string{"1 a", "2 b", "3 c"},
-			expected: nil,
+			expected: []string{},
 		},
 	}
 

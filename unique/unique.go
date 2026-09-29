@@ -80,7 +80,7 @@ func Unique(commands Commands, lines []string) []string {
 		count      int    // сколько раз повторилась
 	}
 
-	var groups []group
+	groups := make([]group, 0, len(lines))
 
 	// группируем подряд идущие строки по нормализованному виду
 	for _, line := range lines {
@@ -96,7 +96,7 @@ func Unique(commands Commands, lines []string) []string {
 		groups = append(groups, group{line: line, normalized: normalized, count: 1})
 	}
 
-	var result []string // для записи результата выполнения функции
+	result := make([]string, 0, len(groups)) // для записи результата выполнения функции
 
 	// применяем флаги к группам
 	for _, g := range groups {
