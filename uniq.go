@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"os"
 
 	"uniq/unique"
@@ -51,7 +52,6 @@ func writeLinesToFile(writer io.Writer, lines []string) error {
 
 // функция для проверки количества файловых аргументов
 func validateFiles(numberOfFiles int) (FileFlags, error) {
-
 	switch numberOfFiles {
 	case 2:
 		return FileFlags{HasInput: true, HasOutput: true}, nil
@@ -71,7 +71,7 @@ func printUsage() {
 }
 
 func main() {
-
+	log.SetFlags(0)
 	// объявляем флаги
 	count := flag.Bool("c", false, "подсчитать количество встречаний строки во входных данных")
 	duplicates := flag.Bool("d", false, "вывести только те строки, которые повторились во входных данных")
@@ -89,17 +89,15 @@ func main() {
 	// проверяем взаимоисключение флагов -c, -d, -u
 	// делаем это именно ПОСЛЕ flag.Parse(), иначе значения флагов ещё дефолтные
 	if (*count && *duplicates) || (*count && *uniqueFlag) || (*duplicates && *uniqueFlag) {
-		fmt.Fprintln(os.Stderr, "Ошибка: флаги -c, -d, -u взаимоисключающие")
 		printUsage()
-		os.Exit(1)
+		log.Fatalf("Ошибка: флаги -c, -d, -u взаимоисключающие")
 	}
 
 	// проверяем количество файловых аргументов
 	fileFlags, err := validateFiles(flag.NArg())
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Ошибка: %v\n", err)
 		printUsage()
-		os.Exit(1)
+		log.Fatalf("Ошибка: %v", err)
 	}
 
 	// готовим входной поток: либо файл, либо stdin
@@ -107,8 +105,7 @@ func main() {
 	if fileFlags.HasInput {
 		inputFile, err = os.Open(flag.Args()[0])
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Ошибка: %v\n", err)
-			os.Exit(1)
+			log.Fatalf("Ошибка: %v", err)
 		}
 		defer inputFile.Close()
 	} else {
@@ -118,8 +115,7 @@ func main() {
 	// читаем все строки из входного потока
 	lines, err := readLinesFromFile(inputFile)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Ошибка: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Ошибка: %v", err)
 	}
 
 	// готовим выходной поток: либо файл, либо stdout
@@ -128,8 +124,7 @@ func main() {
 		// используем именно flag.Args()[1], а не "output.txt"
 		outputFile, err = os.Create(flag.Args()[1])
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Ошибка: %v\n", err)
-			os.Exit(1)
+			log.Fatalf("Ошибка: %v", err)
 		}
 		defer outputFile.Close()
 	} else {
@@ -151,7 +146,6 @@ func main() {
 
 	// пишем результат в выходной поток
 	if err := writeLinesToFile(outputFile, output); err != nil {
-		fmt.Fprintf(os.Stderr, "Ошибка: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Ошибка: %v", err)
 	}
 }

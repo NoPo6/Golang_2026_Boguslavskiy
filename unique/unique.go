@@ -16,8 +16,7 @@ type Commands struct {
 }
 
 // функция для удаления префикса из строки и приведения к нижнему регистру (если необходимо)
-func normalize(line string, ignoreCase bool, skipFields int, skipChars int) string {
-
+func normalize(line string, commands Commands) string {
 	resultLine := []rune(line) // переменная для результата (нормализованная строка)
 
 	pointer := 0      // указатель (текущий индекс строки)
@@ -26,7 +25,7 @@ func normalize(line string, ignoreCase bool, skipFields int, skipChars int) stri
 	// цикл удаления полей
 	for pointer < len(resultLine) {
 		// если удалили нужное кол-во полей, то выходим из цикла
-		if fieldCounter == skipFields {
+		if fieldCounter == commands.SkipFields {
 			break
 		}
 
@@ -45,13 +44,13 @@ func normalize(line string, ignoreCase bool, skipFields int, skipChars int) stri
 	}
 
 	// убираем разделяющий пробел после последнего поля
-	if skipFields > 0 && pointer < len(resultLine) && resultLine[pointer] == ' ' {
+	if commands.SkipFields > 0 && pointer < len(resultLine) && resultLine[pointer] == ' ' {
 		pointer++
 	}
 
 	charCounter := 0 // счетчик символов (для удаления)
 	// цикл пропуска символов
-	for (pointer < len(resultLine)) && (charCounter < skipChars) {
+	for (pointer < len(resultLine)) && (charCounter < commands.SkipChars) {
 		pointer++
 		charCounter++
 	}
@@ -65,7 +64,7 @@ func normalize(line string, ignoreCase bool, skipFields int, skipChars int) stri
 		result = ""
 	}
 
-	if ignoreCase {
+	if commands.IgnoreCase {
 		result = strings.ToLower(result)
 	}
 
@@ -74,140 +73,57 @@ func normalize(line string, ignoreCase bool, skipFields int, skipChars int) stri
 
 // основная функция unique
 func Unique(commands Commands, lines []string) []string {
+	// группа подряд идущих одинаковых строк
+	type group struct {
+		line       string // исходная строка (первая в группе)
+		normalized string // нормализованный вид для сравнения
+		count      int    // сколько раз повторилась
+	}
+
+	var groups []group
+
+	// группируем подряд идущие строки по нормализованному виду
+	for _, line := range lines {
+		normalized := normalize(line, commands)
+
+		// если группа есть и совпадает с предыдущей - увеличиваем счетчик
+		if len(groups) > 0 && groups[len(groups)-1].normalized == normalized {
+			groups[len(groups)-1].count++
+			continue
+		}
+
+		// иначе начинаем новую группу
+		groups = append(groups, group{line: line, normalized: normalized, count: 1})
+	}
+
 	var result []string // для записи результата выполнения функции
 
-	// проверяем на соответствие определенному флагу
-	if commands.Count {
-		// условие с подсчетом повторяющихся строк
-		lineCounter := 1   // счетчик слов
-		previousLine := "" // начальное значение предыдущей строки
-
-		// цикл перебора всех строк
-		for index, line := range lines {
-
-			// нормализация строки
-			normalizedLine := normalize(line, commands.IgnoreCase, commands.SkipFields, commands.SkipChars)
-
-			// условие для начального элемента с нулевым индексом
-			if index == 0 {
-				// встретили новое значение сразу
-				result = append(result, line) // запоминаем только первую строку, т.к. разные строки после нормализации могут быть похожи
-				previousLine = normalizedLine // запоминаем нормализованную форму, т.к. сравниваем по ним
-				continue
-			}
-
-			if previousLine == normalizedLine {
-				// встретили похожее значение
-				lineCounter++ // инкрементируем счетчик похожих строк
-			} else {
-				// встретили новое значение после подсчета
-				result[len(result)-1] = strconv.Itoa(lineCounter) + " " + result[len(result)-1] // составляем строку "число похожих строк + сама строка"
-				result = append(result, line)                                                   // запоминаем новую строку
-				lineCounter = 1                                                                 // возвращаем счетчик
-				previousLine = normalizedLine                                                   // запоминаем новое нормализованное значение
-			}
+	// применяем флаги к группам
+	for _, g := range groups {
+		if commands.Count {
+			// -c: число повторений + пробел + исходная строка
+			result = append(result, strconv.Itoa(g.count)+" "+g.line)
+			continue
 		}
 
-		if len(result) > 0 {
-			result[len(result)-1] = strconv.Itoa(lineCounter) + " " + result[len(result)-1]
+		if commands.Duplicates {
+			// -d: только группы, где было больше одной строки
+			if g.count > 1 {
+				result = append(result, g.line)
+			}
+			continue
 		}
 
-	} else if commands.Duplicates {
-		// условие с выводом только продублированных строк
-
-		lineCounter := 1   // счетчик продублированных строк
-		previousLine := "" // начальное значение предыдущей строки
-		curentLine := ""   // текущее начальное значение продублированной последовательности
-
-		for index, line := range lines {
-			normalizedLine := normalize(line, commands.IgnoreCase, commands.SkipFields, commands.SkipChars)
-
-			if index == 0 {
-				curentLine = line
-				previousLine = normalizedLine
-				continue
+		if commands.Unique {
+			// -u: только группы, где строка встретилась один раз
+			if g.count == 1 {
+				result = append(result, g.line)
 			}
-
-			if normalizedLine == previousLine {
-				lineCounter++
-				continue
-			}
-
-			if lineCounter > 1 {
-				result = append(result, curentLine)
-			}
-
-			previousLine = normalizedLine
-			lineCounter = 1
-			curentLine = line
+			continue
 		}
 
-		if len(lines) > 0 && lineCounter > 1 {
-			result = append(result, curentLine)
-		}
-	} else if commands.Unique {
-		// условие с выводом только неповторяющихся строк (флаг -u)
-
-		lineCounter := 1   // счетчик продублированных строк
-		previousLine := "" // начальное значение предыдущей строки
-		curentLine := ""   // текущее начальное значение продублированной последовательности
-
-		for index, line := range lines {
-			normalizedLine := normalize(line, commands.IgnoreCase, commands.SkipFields, commands.SkipChars)
-
-			if index == 0 {
-				curentLine = line
-				previousLine = normalizedLine
-				continue
-			}
-
-			if normalizedLine == previousLine {
-				lineCounter++
-				continue
-			}
-
-			if lineCounter == 1 {
-				result = append(result, curentLine)
-			}
-
-			previousLine = normalizedLine
-			lineCounter = 1
-			curentLine = line
-		}
-
-		if len(lines) > 0 && lineCounter == 1 {
-			result = append(result, curentLine)
-		}
-	} else {
-		// поведение по умолчанию - выводим по одному представителю каждой группы подряд идущих строк
-
-		previousLine := "" // начальное значение предыдущей строки
-		curentLine := ""   // текущее начальное значение последовательности
-
-		for index, line := range lines {
-			normalizedLine := normalize(line, commands.IgnoreCase, commands.SkipFields, commands.SkipChars)
-
-			if index == 0 {
-				curentLine = line
-				previousLine = normalizedLine
-				continue
-			}
-
-			if normalizedLine == previousLine {
-				// строка совпала с предыдущей - пропускаем
-				continue
-			}
-
-			// встретили новую группу - сохраняем представителя предыдущей
-			result = append(result, curentLine)
-			previousLine = normalizedLine
-			curentLine = line
-		}
-
-		// не забываем сохранить последнюю группу
-		if len(lines) > 0 {
-			result = append(result, curentLine)
-		}
+		// поведение по умолчанию - по одному представителю каждой группы
+		result = append(result, g.line)
 	}
 
 	return result
