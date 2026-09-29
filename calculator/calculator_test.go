@@ -60,6 +60,15 @@ func TestCalculate_Failure(t *testing.T) {
 		{"trailing operator", "1+"},
 		{"leading operator", "*1"},
 		{"double plus", "1++2"},
+		{"double unary minus no brackets", "--5"},
+		{"triple unary minus no brackets", "---5"},
+		{"binary and unary minus no brackets", "5--5"},
+		{"two dots in number", "1.1.1"},
+		{"many dots in number", "1.......5"},
+		{"double division", "5//5"},
+		{"double multiplication", "5**5"},
+		{"operator at start of brackets division", "2/(/2)"},
+		{"operator at start of brackets multiplication", "2/(*2)"},
 	}
 
 	for _, tt := range tests {

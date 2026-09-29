@@ -38,7 +38,7 @@ func Calculate(expression string) (float64, error) {
 	p := &parser{input: cleaned, pos: 0}
 
 	// считаем самое верхнеуровневое выражение
-	result, err := p.parseExpr()
+	result, err := p.parseSum()
 	if err != nil {
 		return 0, err
 	}
@@ -52,9 +52,9 @@ func Calculate(expression string) (float64, error) {
 }
 
 // функция для разбора суммы и разности
-func (p *parser) parseExpr() (float64, error) {
+func (p *parser) parseSum() (float64, error) {
 	// разбираем первый терм
-	left, err := p.parseTerm()
+	left, err := p.parseProduct()
 	if err != nil {
 		return 0, err
 	}
@@ -70,8 +70,13 @@ func (p *parser) parseExpr() (float64, error) {
 
 		p.pos++
 
+		// после бинарного + или - не может идти ещё один + или -
+		if p.pos < len(p.input) && (p.input[p.pos] == '+' || p.input[p.pos] == '-') {
+			return 0, ErrUnexpectedChar
+		}
+
 		// разбираем следующий терм
-		right, err := p.parseTerm()
+		right, err := p.parseProduct()
 		if err != nil {
 			return 0, err
 		}
@@ -87,7 +92,7 @@ func (p *parser) parseExpr() (float64, error) {
 }
 
 // функция для разбора произведения и деления
-func (p *parser) parseTerm() (float64, error) {
+func (p *parser) parseProduct() (float64, error) {
 	// разбираем первый унарный операнд
 	left, err := p.parseUnary()
 	if err != nil {
@@ -101,6 +106,11 @@ func (p *parser) parseTerm() (float64, error) {
 		// случай явного умножения или деления
 		if op == '*' || op == '/' {
 			p.pos++
+
+			// после бинарного * или / не может идти + или -
+			if p.pos < len(p.input) && (p.input[p.pos] == '+' || p.input[p.pos] == '-') {
+				return 0, ErrUnexpectedChar
+			}
 
 			right, err := p.parseUnary()
 			if err != nil {
@@ -138,22 +148,20 @@ func (p *parser) parseTerm() (float64, error) {
 
 // функция для разбора унарного минуса
 func (p *parser) parseUnary() (float64, error) {
-	// считаем все минусы подряд, по типу: -(-(-(-5)))
+	// берём не более одного минуса
 	negative := false
-
-	// определяем знак, который дают минусы
-	for p.pos < len(p.input) && p.input[p.pos] == '-' {
-		negative = !negative
+	if p.pos < len(p.input) && p.input[p.pos] == '-' {
+		negative = true
 		p.pos++
 	}
 
-	// разбираем операнд после минусов
+	// разбираем операнд после минуса
 	value, err := p.parsePrimary()
 	if err != nil {
 		return 0, err
 	}
 
-	// отрицательное число
+	// меняем знак
 	if negative {
 		value = -value
 	}
@@ -181,7 +189,7 @@ func (p *parser) parsePrimary() (float64, error) {
 		p.pos++
 
 		// разбираем выражение внутри скобок
-		value, err := p.parseExpr()
+		value, err := p.parseSum()
 
 		p.depth--
 
@@ -201,14 +209,28 @@ func (p *parser) parsePrimary() (float64, error) {
 	// встретили число
 	if ch >= '0' && ch <= '9' {
 		start := p.pos
+		dotSeen := false
 
 		// считываем все цифры и точки подряд
 		for p.pos < len(p.input) {
 			c := p.input[p.pos]
-			if (c >= '0' && c <= '9') || c == '.' {
+
+			if c >= '0' && c <= '9' {
 				p.pos++
 				continue
 			}
+
+			// встретили точку
+			if c == '.' {
+				// вторая точка в одном числе - сразу ошибка
+				if dotSeen {
+					return 0, ErrUnexpectedChar
+				}
+				dotSeen = true
+				p.pos++
+				continue
+			}
+
 			break
 		}
 
