@@ -3,7 +3,6 @@ package calculator
 import (
 	"errors"
 	"strconv"
-	"strings"
 )
 
 // ошибки парсера
@@ -27,15 +26,12 @@ type parser struct {
 
 // функция для вычисления выражения
 func Calculate(expression string) (float64, error) {
-	// убираем пробелы, чтобы не отвлекаться на них при разборе
-	cleaned := strings.ReplaceAll(expression, " ", "")
-
 	// пустое выражение считать нечего
-	if cleaned == "" {
+	if expression == "" {
 		return 0, ErrEmptyExpression
 	}
 
-	p := &parser{input: cleaned, pos: 0}
+	p := &parser{input: expression, pos: 0}
 
 	// считаем самое верхнеуровневое выражение
 	result, err := p.parseSum()

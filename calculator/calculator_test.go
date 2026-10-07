@@ -30,7 +30,6 @@ func TestCalculate_Success(t *testing.T) {
 		{"implicit multiplication bracket and number", "(2+3)4", 20},
 		{"example from task", "(1+2)-3", 0},
 		{"example from task two", "(1+2)*3", 9},
-		{"with spaces", "(1 + 2) - 3", 0},
 		{"float numbers", "1.5+2.5", 4},
 		{"complex", "2*(3+4)-10/5", 12},
 		{"division and multiplication chain", "100/5/2*3", 30},
@@ -69,6 +68,7 @@ func TestCalculate_Failure(t *testing.T) {
 		{"double multiplication", "5**5"},
 		{"operator at start of brackets division", "2/(/2)"},
 		{"operator at start of brackets multiplication", "2/(*2)"},
+		{"digits separated with space", "1 2 9"},
 	}
 
 	for _, tt := range tests {
